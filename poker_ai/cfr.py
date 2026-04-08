@@ -33,40 +33,53 @@ def get_average_strategy(strategy_set):
 # game: current game state
 # player: the player we are optimizing for
 # reach_prob: how likely we were to reach this point (starts at 1.0)
-def cfr(game, player, reach_prob):
-    # Base case — game is over, return the actual payoff for this player
+def cfr(game, player, reach_probs):
+    # Base case: game is over, return the actual payoff for this player
     if game.is_terminal():
         return game.get_payoff(player)
-    
-    # Figure out whose turn it is and what they can see
+
+    # Determine whose turn it is and what they can see (their card + betting history)
     players_turn = game.get_current_player()
     infoset_key = get_infoset_key(game, players_turn)
-    
-    # If this is the first time seeing this situation, initialize it with zero regrets
+
+    # First time seeing this situation — initialize with zero regrets
     if infoset_key not in info_sets:
         info_sets[infoset_key] = {
             "regrets": [0.0, 0.0],
             "strategy_sum": [0.0, 0.0]
         }
-    
-    # Get the current strategy for this situation based on accumulated regrets
+
+    # Convert accumulated regrets into a strategy (higher regret = played more often)
     current_strategy = get_strategy(info_sets[infoset_key]["regrets"])
     current_actions = game.get_actions()
-    
-    # Simulate each possible action and record what it was worth
+
+    # Recursively compute the expected value of each action
+    # As we go deeper, update the current player's reach probability
+    # to reflect how likely they were to choose this action
     action_values = []
     for i, action in enumerate(current_actions):
         new_game = copy.deepcopy(game)
         new_game.add_action(action)
-        action_values.append(cfr(new_game, player, reach_prob * current_strategy[i]))
-    
-    # Weighted average of action values based on how often we play each action
+        new_reach = reach_probs.copy()
+        new_reach[players_turn] *= current_strategy[i]
+        action_values.append(cfr(new_game, player, new_reach))
+
+    # The value of this node is the weighted average across all actions
     node_value = sum(current_strategy[i] * action_values[i] for i in range(len(current_actions)))
-    
-    # Update regrets and strategy sum for this infoset
-    for i, action in enumerate(current_actions):
-        if players_turn == player:
-            info_sets[infoset_key]["regrets"][i] += reach_prob * (action_values[i] - node_value)
-            info_sets[infoset_key]["strategy_sum"][i] += reach_prob * current_strategy[i]
-    
+
+    # Only update regrets and strategy at nodes where it's our turn
+    if players_turn == player:
+        opponent = 1 - player
+        for i, action in enumerate(current_actions):
+            # Regret is weighted by the opponent's reach probability:
+            # "how often does the opponent put us in this situation?"
+            # We exclude our own reach probability to avoid biasing against
+            # actions we currently play rarely — we need to freely explore
+            info_sets[infoset_key]["regrets"][i] += reach_probs[opponent] * (action_values[i] - node_value)
+
+            # Strategy sum is weighted by our own reach probability:
+            # "how often did we actually play this action?"
+            # Averaging this over all iterations converges to Nash equilibrium
+            info_sets[infoset_key]["strategy_sum"][i] += reach_probs[player] * current_strategy[i]
+
     return node_value
