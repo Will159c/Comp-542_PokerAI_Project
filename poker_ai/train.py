@@ -1,5 +1,5 @@
-import cfr as cr
-import kuhn_poker as kp
+from . import cfr as cr
+from . import kuhn_poker as kp
 
 def train(iterations):
     for r in range(iterations):
