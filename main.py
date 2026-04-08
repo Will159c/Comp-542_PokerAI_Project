@@ -1,3 +1,6 @@
+# This file is moreso a dead file for now, it is testing of pokerkit. 
+# If we decide to make the AI agent use pokerkit then we will use this file in the future.
+
 from pokerkit import (
      Automation,
      NoLimitTexasHoldem,
