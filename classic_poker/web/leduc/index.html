@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <base href="/leduc-holdem/" />
+    <title>Poker Leduc Hold'em — playable localhost demo</title>
+    <link rel="stylesheet" href="/classic-poker/leduc-static/style.css" />
+  </head>
+  <body>
+    <div class="bg-layer" aria-hidden="true"></div>
+    <main class="wrap">
+      <header class="top">
+        <div>
+          <p class="hub-link"><a href="/">← All games</a></p>
+          <h1>Poker Leduc Hold'em</h1>
+          <p class="sub">Uses existing `poker_ai` Kuhn/CFR model outputs, decisions, and winner logic.</p>
+        </div>
+        <div class="top-controls">
+          <button type="button" id="btn-music" class="btn secondary" aria-pressed="true">Music on</button>
+          <button type="button" id="btn-new" class="btn secondary">New round</button>
+        </div>
+      </header>
+
+      <section class="table">
+        <div class="center">
+          <div class="pot">Pot: <strong id="pot">—</strong></div>
+          <div class="community">
+            <span>Community card</span>
+            <div id="community-card" class="card-slot"></div>
+          </div>
+          <div id="turn" class="turn">—</div>
+        </div>
+
+        <div class="seats">
+          <article class="seat robot">
+            <h2>Robot opponent</h2>
+            <div id="robot-card" class="card-slot"></div>
+            <p id="robot-status" class="status">Waiting...</p>
+          </article>
+          <article class="seat human">
+            <h2>You</h2>
+            <div id="human-card" class="card-slot"></div>
+            <p id="human-status" class="status">Your move.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <p id="message" class="message"></p>
+        <p id="model" class="model"></p>
+        <div id="actions" class="actions">
+          <button type="button" class="btn" data-action="p">Check / Fold</button>
+          <button type="button" class="btn" data-action="b">Bet</button>
+          <button type="button" class="btn" data-action="c">Call</button>
+        </div>
+      </section>
+    </main>
+
+    <audio id="audio-shuffle" src="/sounds/shiffle_cards.mp3" preload="auto"></audio>
+    <audio id="audio-card" src="/sounds/card1.mp3" preload="auto"></audio>
+    <audio id="audio-bet" src="/sounds/raise.mp3" preload="auto"></audio>
+    <audio id="audio-check" src="/sounds/check.mp3" preload="auto"></audio>
+    <audio id="audio-bg" src="/sounds/background.mp3" preload="auto" loop></audio>
+    <audio id="audio-win" src="/sounds/background.mp3" preload="auto"></audio>
+    <audio id="audio-lose" src="/sounds/check.mp3" preload="auto"></audio>
+
+    <script src="/classic-poker/leduc-static/app.js"></script>
+  </body>
+</html>

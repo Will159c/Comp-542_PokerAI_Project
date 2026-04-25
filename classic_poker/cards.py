@@ -8,15 +8,14 @@ from typing import Any, MutableSequence
 SUITS = ["♠", "♥", "♦", "♣"]
 RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 
-CHIP_ORDER = [2000, 1000, 500, 200, 100, 50, 25]
+# Table display denominations (greedy largest-first).
+CHIP_ORDER = [200, 100, 50, 25, 10]
 CHIP_COLORS: dict[int, str] = {
+    10: "grey",
     25: "red",
     50: "blue",
     100: "green",
     200: "black",
-    500: "purple",
-    1000: "orange",
-    2000: "yellow",
 }
 
 global_card_id = 0

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <base href="/classic-poker/" />
+    <title>Texas Hold'em Poker — you vs AI</title>
+    <link rel="preload" href="/images/d2.png" as="image" />
+    <link rel="stylesheet" href="static/style.css" />
+  </head>
+  <body>
+    <div class="bg-layer" aria-hidden="true"></div>
+    <main class="table-wrap">
+      <header class="top-bar">
+        <div class="title-block">
+          <p class="hub-link"><a href="/">← All games</a></p>
+          <h1>Texas Hold'em <span class="sub">poker vs AI</span></h1>
+          <p class="tagline">
+            Same shared board; you and the AI each have hole cards. The AI checks, bets, calls, and folds against
+            your hand until showdown or a fold.
+          </p>
+        </div>
+        <div class="top-controls">
+          <button type="button" id="btn-music" class="btn secondary" aria-pressed="true">Music on</button>
+          <button type="button" id="btn-new" class="btn secondary">New hand</button>
+        </div>
+      </header>
+
+      <div class="felt-outer">
+        <div class="dealer-spot" role="img" aria-label="Dealer">
+          <img
+            id="dealer-img"
+            src="/images/d1.png"
+            alt=""
+            class="dealer-img"
+            width="160"
+            height="160"
+            decoding="async"
+            data-frame="1"
+          />
+          <span class="dealer-label" aria-hidden="true">Dealer</span>
+        </div>
+
+        <div class="oval-rail">
+          <section class="felt" aria-label="Table">
+            <div class="pot-zone">
+              <div class="pot-label">Pot</div>
+              <div id="pot-amount" class="pot-amount" aria-live="polite">—</div>
+              <div class="table-chips-row" aria-label="Chips in the pot">
+                <div class="chip-pile-wrap chip-pile-wrap-solo">
+                  <div class="chip-pile-label">Pot chips</div>
+                  <div id="pile-pot" class="chip-pile" aria-live="polite"></div>
+                </div>
+              </div>
+              <p class="chip-stack-hint">
+                
+              </p> each player starts with 1,000 chips. 
+              <div id="pot-text" class="pot-text">—</div>
+            </div>
+
+            <div class="board-section">
+              <div class="board-head">
+                <span class="board-title">Board</span>
+                <span id="street-badge" class="street-badge">—</span>
+              </div>
+              <div id="board-line" class="board-line" aria-live="polite"></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="players" aria-label="Players">
+          <div class="seat ai-seat">
+            <div class="seat-top">
+              <div class="seat-label">AI opponent</div>
+              <div class="stack-pill" aria-label="Bot stack" aria-live="polite"><strong id="ai-chips">—</strong></div>
+            </div>
+            <div id="ai-hole" class="hole-cards" aria-live="polite"></div>
+            <div id="ai-status" class="status-msg"></div>
+          </div>
+          <div class="seat human-seat">
+            <div class="seat-top">
+              <div class="seat-label">You — your hand</div>
+              <div class="stack-pill" aria-label="Your stack" aria-live="polite"><strong id="human-chips">—</strong></div>
+            </div>
+            <div id="human-hole" class="hole-cards" aria-live="polite"></div>
+            <div id="human-status" class="status-msg"></div>
+          </div>
+        </div>
+      </div>
+
+      <section class="panel">
+        <div id="message" class="message" role="status" aria-live="polite"></div>
+        <div id="model-info" class="model-info" aria-live="polite" hidden></div>
+        <div id="ai-log" class="ai-log" aria-live="polite"></div>
+
+        <div class="actions" id="actions">
+          <div class="actions-row actions-row-open" hidden>
+            <button type="button" class="btn primary" data-action="p" id="btn-p" hidden>Check</button>
+            <button type="button" class="btn primary btn-allin" data-action="b" id="btn-allin" hidden>
+              All in
+            </button>
+            <div id="bet-size-row" class="bet-size-row" hidden></div>
+          </div>
+          <div class="actions-row actions-row-facing" hidden>
+            <button type="button" class="btn danger" data-action="p" id="btn-fold" hidden>Fold</button>
+            <button type="button" class="btn primary" data-action="c" id="btn-call" hidden>Call</button>
+          </div>
+        </div>
+
+        <details class="rankings">
+          <summary>Hand chart</summary>
+          <img src="/images/rankings.png" alt="Poker hand rankings chart" width="360" />
+        </details>
+      </section>
+    </main>
+
+    <audio id="audio-shuffle" src="/sounds/shiffle_cards.mp3" preload="auto"></audio>
+    <audio id="audio-deal" src="/sounds/card1.mp3" preload="auto"></audio>
+    <audio id="audio-raise" src="/sounds/raise.mp3" preload="auto"></audio>
+    <audio id="audio-check" src="/sounds/check.mp3" preload="auto"></audio>
+    <audio id="audio-bg" src="/sounds/background.mp3" preload="auto" loop></audio>
+
+    <div id="chip-flight-layer" class="chip-flight-layer" aria-hidden="true"></div>
+
+    <script src="static/app.js"></script>
+  </body>
+</html>

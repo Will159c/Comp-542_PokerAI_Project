@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Poker — Game hub</title>
+    <style>
+      :root {
+        --bg: #070c0a;
+        --panel: #121a17;
+        --gold: #d4a853;
+        --cream: #f0e6d8;
+        --muted: rgba(240, 230, 216, 0.72);
+        --line: rgba(212, 168, 83, 0.22);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        color: var(--cream);
+        background: radial-gradient(ellipse 80% 50% at 50% -10%, #1a2e26 0%, var(--bg) 55%);
+        position: relative;
+      }
+      .bg-video {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -2;
+        opacity: 0.68;
+        pointer-events: none;
+      }
+      .bg-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% -10%, rgba(26, 46, 38, 0.42) 0%, rgba(7, 12, 10, 0.58) 55%),
+          linear-gradient(180deg, rgba(7, 12, 10, 0.14) 0%, rgba(7, 12, 10, 0.48) 100%);
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 2.5rem 1.25rem 3rem;
+      }
+      h1 {
+        font-size: 1.65rem;
+        font-weight: 650;
+        letter-spacing: 0.03em;
+        margin: 0 0 0.35rem;
+      }
+      .sub {
+        font-size: 0.95rem;
+        color: var(--muted);
+        margin: 0 0 2rem;
+        line-height: 1.5;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+      }
+      .games-title {
+        margin: 1.35rem 0 0.8rem;
+        text-align: center;
+        font-size: 1.05rem;
+        font-weight: 650;
+        letter-spacing: 0.03em;
+        color: var(--gold);
+      }
+      ul.games {
+        position: relative;
+        z-index: 2;
+        margin-top: 1rem;
+      }
+      ul.games li {
+        flex: 1 1 280px;
+        max-width: 430px;
+      }
+      a.card {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        padding: 1.1rem 1.15rem;
+        border-radius: 14px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+        transition: border-color 0.15s ease, transform 0.12s ease;
+      }
+      a.card:hover {
+        border-color: rgba(212, 168, 83, 0.45);
+        transform: translateY(-1px);
+      }
+      a.card strong {
+        display: block;
+        font-size: 1.05rem;
+        color: var(--gold);
+        margin-bottom: 0.25rem;
+      }
+      a.card span {
+        font-size: 0.88rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      a.card.placeholder span {
+        font-style: italic;
+      }
+      footer {
+        margin-top: 2.5rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        opacity: 0.85;
+      }
+      .music-toggle {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.85rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(18, 26, 23, 0.92);
+        color: var(--cream);
+        font-size: 0.82rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(8px);
+      }
+      .music-toggle:hover {
+        border-color: rgba(212, 168, 83, 0.45);
+      }
+      .music-toggle[aria-pressed="true"] {
+        border-color: rgba(212, 168, 83, 0.55);
+        color: var(--gold);
+      }
+      .music-toggle .music-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #555;
+        flex-shrink: 0;
+      }
+      .music-toggle[aria-pressed="true"] .music-dot {
+        background: #6ecf8b;
+        box-shadow: 0 0 10px rgba(110, 207, 139, 0.6);
+      }
+      .hero {
+        margin: 0 auto 1.5rem;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+        max-width: 920px;
+      }
+      .hero img {
+        display: block;
+        width: 100%;
+        height: auto;
+        vertical-align: middle;
+      }
+      @media (max-width: 760px) {
+        ul.games {
+          margin-top: 0.8rem;
+        }
+      }
+      @media (max-width: 520px) {
+        .wrap {
+          padding-left: 0.8rem;
+          padding-right: 0.8rem;
+        }
+        ul.games {
+          margin-top: 0.6rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <video class="bg-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
+      <source src="/video/Untitled%20design.mp4" type="video/mp4" />
+    </video>
+    <div class="bg-overlay" aria-hidden="true"></div>
+    <audio id="theme-audio" src="/sounds/themesong.mp3" loop preload="auto"></audio>
+    <button
+      type="button"
+      id="music-toggle"
+      class="music-toggle"
+      aria-pressed="true"
+      aria-label="Turn background music off"
+    >
+      <span class="music-dot" aria-hidden="true"></span>
+      <span id="music-toggle-label">Music on</span>
+    </button>
+    <div class="wrap">
+      
+      <figure class="hero">
+        <img src="/images/landing.png" alt="Poker lab — stylized table and cards" width="1200" height="675" decoding="async" />
+      </figure>
+      <p class="sub"></p>
+      <p class="games-title">Choose your game to play</p>
+      <ul class="games">
+        <li>
+          <a class="card" href="/classic-poker/">
+            <strong>Classic Texas Hold'em</strong>
+            <span>you vs AI.</span>
+          </a>
+        </li>
+        <li>
+          <a class="card placeholder" href="/leduc-holdem/">
+            <strong>Poker Leduc Hold'em</strong>
+            <span>Playable Leduc/Kuhn round using the existing `poker_ai` CFR model.</span>
+          </a>
+        </li>
+      </ul>
+      <footer> <code></code></footer>
+    </div>
+    <script>
+      (function () {
+        const audio = document.getElementById("theme-audio");
+        const btn = document.getElementById("music-toggle");
+        const label = document.getElementById("music-toggle-label");
+        if (!audio || !btn || !label) return;
+
+        function setOn(on) {
+          btn.setAttribute("aria-pressed", on ? "true" : "false");
+          btn.setAttribute("aria-label", on ? "Turn background music off" : "Turn background music on");
+          label.textContent = on ? "Music on" : "Music off";
+        }
+
+        btn.addEventListener("click", function () {
+          const isOn = btn.getAttribute("aria-pressed") === "true";
+          if (isOn) {
+            audio.pause();
+            setOn(false);
+            return;
+          }
+          audio.play().then(function () {
+            setOn(true);
+          }).catch(function () {
+            setOn(false);
+          });
+        });
+
+        window.addEventListener("load", function () {
+          audio
+            .play()
+            .then(function () {
+              setOn(true);
+            })
+            .catch(function () {
+              setOn(false);
+              function unlock() {
+                document.removeEventListener("pointerdown", unlock, true);
+                audio
+                  .play()
+                  .then(function () {
+                    setOn(true);
+                  })
+                  .catch(function () {
+                    setOn(false);
+                  });
+              }
+              document.addEventListener("pointerdown", unlock, true);
+            });
+        });
+      })();
+    </script>
+  </body>
+</html>

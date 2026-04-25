@@ -1,0 +1,201 @@
+:root {
+  --bg: #0a0f0d;
+  --panel: #121a17;
+  --gold: #d4a853;
+  --cream: #f0e6d8;
+  --line: rgba(212, 168, 83, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--cream);
+  background: var(--bg);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 15%, #1a2e28 0%, #050807 70%);
+  z-index: 0;
+}
+
+.wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 1.2rem 1rem 2rem;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.top-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hub-link {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+}
+
+.hub-link a {
+  color: var(--gold);
+  text-decoration: none;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.sub {
+  margin: 0.45rem 0 0;
+  opacity: 0.8;
+  font-size: 0.9rem;
+}
+
+.table,
+.panel {
+  margin-top: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.7rem 0 1rem;
+}
+
+.pot {
+  font-size: 1.1rem;
+}
+
+.pot strong {
+  color: var(--gold);
+}
+
+.community {
+  text-align: center;
+}
+
+.turn {
+  font-size: 0.9rem;
+  color: var(--gold);
+}
+
+.seats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 680px) {
+  .seats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.seat {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.8rem;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.seat h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.card-slot {
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  width: 60px;
+  height: 84px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #fff8ee, #e8dcc8);
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.card.back {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(212, 168, 83, 0.2) 0,
+      rgba(212, 168, 83, 0.2) 6px,
+      rgba(255, 255, 255, 0.04) 6px,
+      rgba(255, 255, 255, 0.04) 12px
+    ),
+    linear-gradient(145deg, #3a4b45, #1a2521);
+  border-color: rgba(212, 168, 83, 0.45);
+}
+
+.status,
+.message,
+.model {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.92;
+}
+
+.model {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  font-weight: 600;
+  background: var(--gold);
+  color: #0f1a16;
+  cursor: pointer;
+}
+
+.btn.secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--cream);
+}
+
+.btn[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
