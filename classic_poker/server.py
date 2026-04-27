@@ -1,16 +1,13 @@
 """
-Poker web app: landing page + classic Texas Hold'em vs AI + Leduc Hold'em placeholder.
+Poker web app: landing page + classic Texas Hold'em vs AI + Leduc Hold'em.
 
 Run from project root:
   uvicorn classic_poker.server:app --reload --host 127.0.0.1 --port 8000
 
-Or:
-  uvicorn server:app --reload --host 127.0.0.1 --port 8000
-
 Open:
   http://127.0.0.1:8000/                 — game hub (landing)
   http://127.0.0.1:8000/classic-poker/   — Texas Hold'em vs AI
-  http://127.0.0.1:8000/leduc-holdem/    — Leduc Hold'em (placeholder)
+  http://127.0.0.1:8000/leduc-holdem/    — Leduc Hold'em vs AI
 """
 from __future__ import annotations
 
@@ -24,9 +21,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from poker_ai import cfr as kuhn_cfr
-from poker_ai import train as kuhn_train
-from poker_ai.kuhn_poker import KuhnPoker
+from poker_ai import cfr as leduc_cfr
+from poker_ai import train as leduc_train
+from poker_ai.leduc_poker import LeducPoker, get_infoset_key
 
 from . import cards as cardutil
 from .holdem_lite import (
@@ -41,58 +38,72 @@ PROJECT_ROOT = CLASSIC_POKER_ROOT.parent
 
 sessions: dict[str, dict[str, Any]] = {}
 leduc_sessions: dict[str, dict[str, Any]] = {}
-_kuhn_model_ready = False
+_leduc_model_ready = False
 
 CARD_VALUE = {"J": 1, "Q": 2, "K": 3}
 
 
-def _ensure_kuhn_model_ready() -> None:
-    global _kuhn_model_ready
-    if _kuhn_model_ready:
+def _ensure_leduc_model_ready() -> None:
+    global _leduc_model_ready
+    if _leduc_model_ready:
         return
-    kuhn_train.train(15000, verbose=False)
-    _kuhn_model_ready = True
+    leduc_train.train(15000)
+    _leduc_model_ready = True
 
 
 def _average_strategy_for_infoset(infoset_key: str, legal_actions: list[str]) -> list[float]:
-    node = kuhn_cfr.info_sets.get(infoset_key)
+    node = leduc_cfr.info_sets.get(infoset_key)
     if node is None:
         n = len(legal_actions)
         return [1.0 / n for _ in legal_actions]
-    avg = kuhn_cfr.get_average_strategy(node["strategy_sum"])
+    avg = leduc_cfr.get_average_strategy(node["strategy_sum"])
     if len(avg) != len(legal_actions):
         n = len(legal_actions)
         return [1.0 / n for _ in legal_actions]
     return avg
 
 
-def _kuhn_action_label(action: str, legal_actions: list[str]) -> str:
-    if action == "p" and "b" in legal_actions:
-        return "check"
-    if action == "p":
-        return "fold"
-    if action == "b":
-        return "bet"
-    if action == "c":
-        return "call"
-    return action
+def _leduc_action_label(action: str) -> str:
+    return {
+        "p": "check",
+        "b": "bet",
+        "c": "call",
+        "r": "raise",
+        "f": "fold",
+    }.get(action, action)
+
+
+def _leduc_audio_for_label(label: str) -> str:
+    return {
+        "bet": "raise",
+        "raise": "raise",
+        "call": "call",
+        "fold": "fold",
+        "check": "check",
+    }.get(label, "check")
 
 
 def _serialize_leduc_state(
-    game: KuhnPoker,
+    game: LeducPoker,
     *,
     message: str | None = None,
     audio_event: str | None = None,
     ai_action: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """
+    Serialize the current Leduc state for the frontend.
+
+    NOTE: model_info is NOT set here by default — it's attached separately by
+    the action handler when appropriate (i.e., right after a human action,
+    showing what the AI was about to do in response).
+    """
     terminal = game.is_terminal()
     legal = [] if terminal else game.get_actions()
     current_player = -1 if terminal else game.get_current_player()
-    board = [game.deck[2]] if len(game.history) >= 2 else []
+
     human_card = game.player_cards[0]
     ai_card = game.player_cards[1] if terminal else None
-    infoset = f"{game.player_cards[1]}:{game.history}" if not terminal else None
-    strat = _average_strategy_for_infoset(infoset, legal) if infoset else []
+    community = game.community
 
     winner: str | None = None
     payoff_human: int | None = None
@@ -105,57 +116,79 @@ def _serialize_leduc_state(
         else:
             winner = "tie"
 
+    round_label = {
+        0: "Preflop (round 1)",
+        1: "Postflop (round 2)",
+    }.get(game.current_round, f"Round {game.current_round}")
+
     return {
-        "game": "leduc_holdem_kuhn_core",
-        "street_label": "Single betting round",
-        "history": game.history,
+        "game": "leduc_holdem",
+        "street_label": round_label,
+        "current_round": game.current_round,
+        "round0_history": game.history[0],
+        "round1_history": game.history[1],
         "current_player": current_player,
         "human_turn": (not terminal and current_player == 0),
         "legal_actions": legal,
         "human_card": human_card,
         "human_card_value": CARD_VALUE[human_card],
-        "community_card": board[0] if board else None,
-        "community_card_value": CARD_VALUE[board[0]] if board else None,
+        "community_card": community,
+        "community_card_value": CARD_VALUE[community] if community else None,
         "opponent_card": ai_card,
         "opponent_card_value": CARD_VALUE[ai_card] if ai_card else None,
         "terminal": terminal,
         "winner": winner,
         "payoff_human": payoff_human,
-        "pot_units": 2 + game.history.count("b") + game.history.count("c"),
-        "model_info": {
-            "infoset": infoset,
-            "strategy_actions": legal,
-            "strategy_probs": strat,
-        }
-        if infoset
-        else None,
+        "pot_units": game.pot[0] + game.pot[1],
+        "pot_human": game.pot[0],
+        "pot_ai": game.pot[1],
+        "dealer": game.dealer,
+        "model_info": None,
         "message": message,
         "audio_event": audio_event,
         "ai_action": ai_action,
     }
 
 
-def _run_leduc_ai_until_human_turn(game: KuhnPoker) -> tuple[str | None, dict[str, Any] | None]:
-    _ensure_kuhn_model_ready()
+def _capture_ai_response_strategy(game: LeducPoker) -> dict[str, Any] | None:
+    """
+    If it's the AI's turn and the hand isn't over, capture what the AI is
+    about to do (its real strategy at this infoset, including its card).
+    Returns None otherwise.
+    """
+    if game.is_terminal():
+        return None
+    if game.get_current_player() != 1:
+        return None
+    _ensure_leduc_model_ready()  # make sure training has run
+    legal = game.get_actions()
+    infoset = get_infoset_key(game, 1)
+    probs = _average_strategy_for_infoset(infoset, legal)
+    return {
+        "infoset": infoset,
+        "strategy_actions": legal,
+        "strategy_probs": probs,
+    }
+
+
+def _run_leduc_ai_until_human_turn(game: LeducPoker) -> tuple[str | None, dict[str, Any] | None]:
+    _ensure_leduc_model_ready()
     audio: str | None = None
     last_ai_action: dict[str, Any] | None = None
 
     while not game.is_terminal() and game.get_current_player() == 1:
         legal = game.get_actions()
-        infoset = f"{game.player_cards[1]}:{game.history}"
+        infoset = get_infoset_key(game, 1)
         probs = _average_strategy_for_infoset(infoset, legal)
         ai_action = random.choices(legal, weights=probs, k=1)[0]
         game.add_action(ai_action)
-        label = _kuhn_action_label(ai_action, legal)
-        last_ai_action = {"action": ai_action, "label": label, "probs": dict(zip(legal, probs))}
-        if label == "bet":
-            audio = "raise"
-        elif label == "call":
-            audio = "call"
-        elif label == "fold":
-            audio = "fold"
-        else:
-            audio = "check"
+        label = _leduc_action_label(ai_action)
+        last_ai_action = {
+            "action": ai_action,
+            "label": label,
+            "probs": dict(zip(legal, probs)),
+        }
+        audio = _leduc_audio_for_label(label)
     return audio, last_ai_action
 
 
@@ -276,7 +309,7 @@ class LeducNewHandBody(BaseModel):
 
 class LeducActionBody(BaseModel):
     session_id: str
-    action: Literal["p", "b", "c"]
+    action: Literal["p", "b", "c", "r", "f"]
 
 
 api_router = APIRouter()
@@ -466,21 +499,32 @@ def get_state(session_id: str) -> dict[str, Any]:
 
 @api_router.post("/leduc/new-game")
 def leduc_new_game() -> dict[str, Any]:
-    game = KuhnPoker()
+    # First hand: human acts first (dealer = 0). The session tracks who deals
+    # the NEXT hand so we can alternate.
+    game = LeducPoker(dealer=0)
     sid = uuid.uuid4().hex
-    leduc_sessions[sid] = {"game": game}
-    audio, ai_action = _run_leduc_ai_until_human_turn(game)
-    if audio is None:
-        audio = "shuffle"
-    return {
-        "session_id": sid,
-        "state": _serialize_leduc_state(
+    leduc_sessions[sid] = {"game": game, "next_dealer": 1}
+
+    if game.get_current_player() == 1:
+        # Shouldn't happen with dealer=0, but kept for completeness.
+        audio, ai_action = _run_leduc_ai_until_human_turn(game)
+        if audio is None:
+            audio = "shuffle"
+        state = _serialize_leduc_state(
             game,
             audio_event=audio,
             ai_action=ai_action,
-            message="Leduc/Kuhn round started. Your move.",
-        ),
-    }
+            message="Leduc Hold'em — opponent acts first this hand.",
+        )
+        return {"session_id": sid, "state": state}
+
+    # Human acts first — no AI action yet, no model_info to show.
+    state = _serialize_leduc_state(
+        game,
+        audio_event="shuffle",
+        message="Leduc Hold'em — preflop. Your move.",
+    )
+    return {"session_id": sid, "state": state}
 
 
 @api_router.post("/leduc/new-hand")
@@ -488,20 +532,37 @@ def leduc_new_hand(body: LeducNewHandBody) -> dict[str, Any]:
     s = leduc_sessions.get(body.session_id)
     if not s:
         raise HTTPException(status_code=404, detail="Unknown session_id")
-    game = KuhnPoker()
+
+    # Pull the queued dealer for this hand and queue the alternate for next time.
+    dealer = s.get("next_dealer", 0)
+    s["next_dealer"] = 1 - dealer
+
+    game = LeducPoker(dealer=dealer)
     s["game"] = game
-    audio, ai_action = _run_leduc_ai_until_human_turn(game)
-    if audio is None:
-        audio = "shuffle"
-    return {
-        "session_id": body.session_id,
-        "state": _serialize_leduc_state(
+
+    if game.get_current_player() == 1:
+        # AI acts first this hand. Run AI loop, then return waiting for human.
+        audio, ai_action = _run_leduc_ai_until_human_turn(game)
+        if audio is None:
+            audio = "shuffle"
+        msg = "New hand — opponent acts first."
+        if ai_action:
+            msg += f" Opponent {ai_action['label']}."
+        state = _serialize_leduc_state(
             game,
             audio_event=audio,
             ai_action=ai_action,
-            message="New round dealt. Your turn.",
-        ),
-    }
+            message=msg,
+        )
+        return {"session_id": body.session_id, "state": state}
+
+    # Human acts first — show empty model info.
+    state = _serialize_leduc_state(
+        game,
+        audio_event="shuffle",
+        message="New hand dealt — your action first.",
+    )
+    return {"session_id": body.session_id, "state": state}
 
 
 @api_router.post("/leduc/action")
@@ -509,20 +570,28 @@ def leduc_action(body: LeducActionBody) -> dict[str, Any]:
     s = leduc_sessions.get(body.session_id)
     if not s:
         raise HTTPException(status_code=404, detail="Unknown session_id")
-    game: KuhnPoker = s["game"]
+    game: LeducPoker = s["game"]
     if game.is_terminal():
-        raise HTTPException(status_code=400, detail="Round is over. Start a new hand.")
+        raise HTTPException(status_code=400, detail="Hand is over. Start a new hand.")
     if game.get_current_player() != 0:
         raise HTTPException(status_code=400, detail="Not your turn.")
     legal = game.get_actions()
     if body.action not in legal:
-        raise HTTPException(status_code=400, detail=f"Illegal action {body.action!r}; allowed: {legal}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Illegal action {body.action!r}; allowed: {legal}",
+        )
+
+    round_before = game.current_round
     game.add_action(body.action)
 
-    human_label = _kuhn_action_label(body.action, legal)
-    audio = "raise" if human_label == "bet" else ("call" if human_label == "call" else "check")
-    if human_label == "fold":
-        audio = "fold"
+    human_label = _leduc_action_label(body.action)
+    audio = _leduc_audio_for_label(human_label)
+
+    # CAPTURE the AI's response strategy *before* it acts. This is what we'll
+    # show the user — what the AI was going to do in response to their action,
+    # including its card.
+    pre_ai_model_info = _capture_ai_response_strategy(game)
 
     ai_audio, ai_action = _run_leduc_ai_until_human_turn(game)
     if ai_audio is not None:
@@ -530,20 +599,32 @@ def leduc_action(body: LeducActionBody) -> dict[str, Any]:
 
     msg = f"You {human_label}."
     if ai_action:
-        msg += f" Robot {ai_action['label']}."
+        msg += f" Opponent {ai_action['label']}."
+
+    if round_before == 0 and game.current_round == 1 and not game.is_terminal():
+        msg += f" Flop: {game.community}."
+
     if game.is_terminal():
         payoff = game.get_payoff(0)
         if payoff > 0:
-            msg += f" You win ({payoff:+d} chip units)."
+            msg += f" You win ({payoff:+d} chips)."
             audio = "win"
         elif payoff < 0:
-            msg += f" Robot wins ({payoff:+d} chip units)."
+            msg += f" Opponent wins ({payoff:+d} chips)."
             audio = "lose"
         else:
-            msg += " Round is a tie."
+            msg += " Tie."
             audio = "check"
 
-    return {"state": _serialize_leduc_state(game, message=msg, audio_event=audio, ai_action=ai_action)}
+    state = _serialize_leduc_state(
+        game, message=msg, audio_event=audio, ai_action=ai_action
+    )
+    # Attach the captured pre-AI strategy: this shows what the AI was about to
+    # do in response to the human's move (including its card, per user request).
+    if pre_ai_model_info is not None:
+        state["model_info"] = pre_ai_model_info
+
+    return {"state": state}
 
 
 @api_router.get("/leduc/state")
@@ -551,7 +632,7 @@ def leduc_state(session_id: str) -> dict[str, Any]:
     s = leduc_sessions.get(session_id)
     if not s:
         raise HTTPException(status_code=404, detail="Unknown session_id")
-    game: KuhnPoker = s["game"]
+    game: LeducPoker = s["game"]
     return {"state": _serialize_leduc_state(game)}
 
 

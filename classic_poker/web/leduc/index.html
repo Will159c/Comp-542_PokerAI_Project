@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <base href="/leduc-holdem/" />
-    <title>Poker Leduc Hold'em — playable localhost demo</title>
+    <title>Poker Leduc Hold'em — playable demo</title>
     <link rel="stylesheet" href="/classic-poker/leduc-static/style.css" />
   </head>
   <body>
@@ -14,16 +14,16 @@
         <div>
           <p class="hub-link"><a href="/">← All games</a></p>
           <h1>Poker Leduc Hold'em</h1>
-          <p class="sub">Uses existing `poker_ai` Kuhn/CFR model outputs, decisions, and winner logic.</p>
+          <p class="sub">Two-round Leduc Hold'em vs a CFR-trained AI. 6-card deck (J, Q, K — two of each). Pair the community card to win at showdown; otherwise high card wins.</p>
         </div>
         <div class="top-controls">
           <button type="button" id="btn-music" class="btn secondary" aria-pressed="true">Music on</button>
-          <button type="button" id="btn-new" class="btn secondary">New round</button>
+          <button type="button" id="btn-new" class="btn secondary">New hand</button>
         </div>
       </header>
-
       <section class="table">
         <div class="center">
+          <div class="round-badge"><span id="round-label">—</span></div>
           <div class="pot">Pot: <strong id="pot">—</strong></div>
           <div class="community">
             <span>Community card</span>
@@ -31,7 +31,6 @@
           </div>
           <div id="turn" class="turn">—</div>
         </div>
-
         <div class="seats">
           <article class="seat robot">
             <h2>Robot opponent</h2>
@@ -45,18 +44,18 @@
           </article>
         </div>
       </section>
-
       <section class="panel">
         <p id="message" class="message"></p>
         <p id="model" class="model"></p>
         <div id="actions" class="actions">
-          <button type="button" class="btn" data-action="p">Check / Fold</button>
+          <button type="button" class="btn" data-action="p">Check</button>
           <button type="button" class="btn" data-action="b">Bet</button>
           <button type="button" class="btn" data-action="c">Call</button>
+          <button type="button" class="btn" data-action="r">Raise</button>
+          <button type="button" class="btn danger" data-action="f">Fold</button>
         </div>
       </section>
     </main>
-
     <audio id="audio-shuffle" src="/sounds/shiffle_cards.mp3" preload="auto"></audio>
     <audio id="audio-card" src="/sounds/card1.mp3" preload="auto"></audio>
     <audio id="audio-bet" src="/sounds/raise.mp3" preload="auto"></audio>
@@ -64,7 +63,6 @@
     <audio id="audio-bg" src="/sounds/background.mp3" preload="auto" loop></audio>
     <audio id="audio-win" src="/sounds/background.mp3" preload="auto"></audio>
     <audio id="audio-lose" src="/sounds/check.mp3" preload="auto"></audio>
-
     <script src="/classic-poker/leduc-static/app.js"></script>
   </body>
 </html>

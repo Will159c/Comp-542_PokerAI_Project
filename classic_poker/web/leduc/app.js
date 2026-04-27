@@ -70,12 +70,21 @@ function renderCard(rank, hidden = false) {
   return `<div class="card">${rank}</div>`;
 }
 
+/**
+ * Show or hide each action button based on what's actually legal in this state.
+ * Backend's legal_actions array drives this — possible values: p, b, c, r, f.
+ */
 function setActions(state) {
   const buttons = document.querySelectorAll("#actions button[data-action]");
   buttons.forEach((btn) => {
     const action = btn.dataset.action;
-    const legal = state.human_turn && !state.terminal && state.legal_actions.includes(action);
+    const legal =
+      state.human_turn &&
+      !state.terminal &&
+      Array.isArray(state.legal_actions) &&
+      state.legal_actions.includes(action);
     btn.disabled = !legal;
+    btn.hidden = !legal;
   });
 }
 
@@ -112,44 +121,64 @@ function setupMusicControls() {
 
 function applyState(payload) {
   const state = payload.state || payload;
+
   $("#pot").textContent = String(state.pot_units ?? 0);
+  $("#round-label").textContent = state.street_label || "—";
+
   $("#human-card").innerHTML = renderCard(state.human_card, false);
   $("#robot-card").innerHTML = renderCard(state.opponent_card, !state.terminal);
-  $("#community-card").innerHTML = renderCard(state.community_card, !state.community_card);
+  $("#community-card").innerHTML = renderCard(
+    state.community_card,
+    !state.community_card,
+  );
 
   $("#turn").textContent = state.terminal
-    ? "Round complete"
+    ? "Hand complete"
     : state.human_turn
       ? "Current turn: You"
       : "Current turn: Robot";
 
   $("#message").textContent = state.message || "";
 
+  // model_info is now ONLY set by the server right after a human action,
+  // showing what the AI did in response (with its card and strategy).
+  // On a fresh hand, between the AI's action and the human's next, model_info
+  // is null — and we hide the line entirely.
+  const modelEl = $("#model");
   if (state.model_info && state.model_info.infoset) {
     const probs = (state.model_info.strategy_probs || [])
       .map((p, i) => `${state.model_info.strategy_actions[i]}=${p.toFixed(2)}`)
       .join(" ");
-    $("#model").textContent = `Model infoset: ${state.model_info.infoset} | ${probs}`;
+    modelEl.textContent = `Opponent's response — infoset ${state.model_info.infoset} | ${probs}`;
+    modelEl.hidden = false;
   } else {
-    $("#model").textContent = "Model infoset: terminal";
+    modelEl.textContent = "";
+    modelEl.hidden = true;
   }
 
   if (state.ai_action && state.ai_action.label) {
     $("#robot-status").textContent = `Robot action: ${state.ai_action.label}`;
   } else {
-    $("#robot-status").textContent = state.terminal ? "Waiting for next round." : "Robot is thinking...";
+    $("#robot-status").textContent = state.terminal
+      ? "Hand complete."
+      : "Robot is waiting on your move.";
   }
 
   if (state.terminal) {
     if (state.winner === "human") {
-      $("#human-status").textContent = `You won this round (+${state.payoff_human}).`;
+      $("#human-status").textContent = `You won this hand (+${state.payoff_human}).`;
     } else if (state.winner === "ai") {
-      $("#human-status").textContent = `You lost this round (${state.payoff_human}).`;
+      $("#human-status").textContent = `You lost this hand (${state.payoff_human}).`;
     } else {
-      $("#human-status").textContent = "Round tied.";
+      $("#human-status").textContent = "Hand tied.";
     }
   } else if (state.human_turn) {
-    $("#human-status").textContent = "Your move: check/bet or call/fold.";
+    const acts = state.legal_actions || [];
+    if (acts.includes("b")) {
+      $("#human-status").textContent = "Your move: check or bet.";
+    } else {
+      $("#human-status").textContent = "Your move: fold, call, or raise.";
+    }
   } else {
     $("#human-status").textContent = "Wait for robot action.";
   }
@@ -213,7 +242,7 @@ $("#btn-new").addEventListener("click", () => {
 
 $("#actions").addEventListener("click", (ev) => {
   const btn = ev.target.closest("button[data-action]");
-  if (!btn) return;
+  if (!btn || btn.disabled) return;
   apiAction(btn.dataset.action).catch((e) => {
     $("#message").textContent = String(e);
   });
